@@ -1,41 +1,77 @@
 import socket
+import time
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from datetime import datetime
 
-# AF_INETでUDPソケットを作成する
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+CASH_ADDRESS = {}
 
-server_address = '0.0.0.0'
-server_port = 9001
-print(f'starting up on port {server_port}')
-
-# 0.0.0.0 9001 紐付け
-sock.bind((server_address, server_port))
-
-cash_address = {}
-
-while True:
-    print('wating to receive messege')
-    data, address = sock.recvfrom(4096)
+def delete_inactive_users(sock):
+    while True:  
+        time.sleep(3)
+        current_time = datetime.now()
+        
+        if len(CASH_ADDRESS) > 0:
+            for user in CASH_ADDRESS:
+                past_time = CASH_ADDRESS[user]['last_access_time']
+                time_difference = current_time - past_time
+                seconds_difference = time_difference.total_seconds()
+                if seconds_difference > 60:
+                    print(f'delete inactive user: {user}')
+                    sock.sendto(f'Connected lost. {user}'.encode(), CASH_ADDRESS[user]['address'])
+                    del CASH_ADDRESS[user]
+                       
+def received_function(sock):
+    while True:
+        print('wating to receive messege')
+        data, address = sock.recvfrom(4096)
    
-    print(f'receive {len(data)} bytes from {address} ')
+        print(f'receive {len(data)} bytes from {address} ')
     
-    if data:
-        # 1バイト目はusernameの長さj
-        username_length = int.from_bytes(data[:1], byteorder='big')
+        if data:
+            # 1バイト目はusernameの長さj
+            username_length = int.from_bytes(data[:1], byteorder='big')
         
-        # 2バイト目以降: usernameを取得
-        username = data[1: 1+username_length].decode('utf-8')
+            # 2バイト目以降: usernameを取得
+            username = data[1: 1+username_length].decode('utf-8')
         
-        # username以降はmessage:
-        message = data[1+username_length:].decode('utf-8')
+            # username以降はmessage:
+            message = data[1+username_length:].decode('utf-8')
         
-        if not(username in cash_address):
             #user 登録
-            cash_address[username] = address
-            sock.sendto(f'Registered. {username}'.encode(), address)
-            continue
+            if not(username in CASH_ADDRESS):
+                CASH_ADDRESS[username] = {'address': address, 'last_access_time': datetime.now()}
+                sock.sendto(f'Registered. {username}'.encode(), CASH_ADDRESS[username]['address'])
+                continue
+            
+            # 全クライアントに送信
+            for user in CASH_ADDRESS:
+                print(CASH_ADDRESS)
+                if not(user == username):
+                    sent = sock.sendto(f'{user}: {message}'.encode(), CASH_ADDRESS[username]['address'])
+                    print(f'sent {sent} bytes back to {user}')
+            
+            # 送信時間の更新
+            CASH_ADDRESS[username]['last_access_time'] = datetime.now()
+            
+
+def main():
+    # AF_INETでUDPソケットを作成する
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    server_port = 9001
+    server_address = '0.0.0.0'
+    print(f'starting up on port {server_port}')
+
+    # 0.0.0.0 9001 紐付け
+    sock.bind((server_address, server_port))
+
+    # 通信
+    print('== START CHAT ==')
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        executor.submit(received_function, sock)
+        executor.submit(delete_inactive_users, sock)
         
-        for user, address in cash_address.items():
-            print(cash_address)
-            if not(user == username):
-                sent = sock.sendto(f'{user}: {message}'.encode(), address)
-                print(f'sent {sent} bytes back to {user}')
+    print('== END CAHT ==')
+    sock.close()
+
+if __name__ == "__main__":
+    main()
