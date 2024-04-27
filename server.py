@@ -1,6 +1,6 @@
 import socket
 import time
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
 CASH_ADDRESS = {}
@@ -44,11 +44,11 @@ def received_function(sock):
                 continue
             
             # 全クライアントに送信
-            for user in CASH_ADDRESS:
-                print(CASH_ADDRESS)
-                if not(user == username):
-                    sent = sock.sendto(f'{user}: {message}'.encode(), CASH_ADDRESS[username]['address'])
-                    print(f'sent {sent} bytes back to {user}')
+            for cash_user in CASH_ADDRESS:
+                if not(cash_user == username):
+                    print('=======================')
+                    sock.sendto(f'{cash_user}: {message}'.encode(), CASH_ADDRESS[cash_user]['address'])
+                    print(f'sent ??? bytes back to {cash_user}')
             
             # 送信時間の更新
             CASH_ADDRESS[username]['last_access_time'] = datetime.now()
