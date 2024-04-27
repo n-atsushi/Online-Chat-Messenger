@@ -28,9 +28,8 @@ def received_function(sock):
         print(f'receive {len(data)} bytes from {address} ')
     
         if data:
-            # 1バイト目はusernameの長さj
+            # 1バイト目はusernameの長さ
             username_length = int.from_bytes(data[:1], byteorder='big')
-        
             # 2バイト目以降: usernameを取得
             username = data[1: 1+username_length].decode('utf-8')
         

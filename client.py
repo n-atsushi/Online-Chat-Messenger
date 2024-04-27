@@ -19,7 +19,10 @@ def received_function(sock, user_info):
 def send_message_function(sock, server_address, server_port, user_info):
     while True:
         try:
-            message = input('メッセージを入力してください:').encode()  
+            message = input('メッセージを入力してください:').encode()
+            if len(message) >= 4096:
+                print(f'送信サイズが4096byteを超えています | Invalid {message} byte.')
+                continue
             sent = sock.sendto(user_info + message, (server_address, server_port))
             if message.decode() == 'close':
                     return
