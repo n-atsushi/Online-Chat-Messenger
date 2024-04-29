@@ -45,7 +45,6 @@ def received_function(sock):
             # 全クライアントに送信
             for cash_user in CASH_ADDRESS:
                 if not(cash_user == username):
-                    print('=======================')
                     sock.sendto(f'{cash_user}: {message}'.encode(), CASH_ADDRESS[cash_user]['address'])
                     print(f'sent ??? bytes back to {cash_user}')
             

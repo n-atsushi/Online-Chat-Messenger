@@ -6,7 +6,6 @@ def received_function(sock, user_info):
     while True:
         try:
             data, server = sock.recvfrom(4096)
-            print('==================================')
             print(f'\n{data.decode()}')
             if data.decode() == 'close':
                 return
